@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Memory Cards</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app" aria-label="Игра на память: найди пары">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand__title">Memory Cards</div>
+          <div class="brand__subtitle">Найди все пары по памяти</div>
+        </div>
+
+        <div class="stats" aria-label="Статистика">
+          <div class="stat">
+            <div class="stat__label">Время</div>
+            <div class="stat__value" id="time">00:00</div>
+          </div>
+          <div class="stat">
+            <div class="stat__label">Ходы</div>
+            <div class="stat__value" id="moves">0</div>
+          </div>
+          <div class="stat">
+            <div class="stat__label">Пары</div>
+            <div class="stat__value" id="pairs">0/7</div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn" id="restart" type="button">Сначала</button>
+        </div>
+      </header>
+
+      <section class="board-wrap" aria-label="Игровое поле">
+        <div class="board" id="board"></div>
+      </section>
+
+      <section class="overlay" id="overlay" aria-live="polite" aria-atomic="true">
+        <div class="overlay__card">
+          <div class="overlay__title" id="overlayTitle">Memory Cards</div>
+          <div class="overlay__text" id="overlayText">
+            Нажми "Начать". Потом карточки откроются на пару секунд для запоминания и закроются.
+          </div>
+          <div class="overlay__row">
+            <div class="pill" id="overlayPill">7 пар</div>
+          </div>
+          <div class="overlay__row overlay__row--actions">
+            <button class="btn btn--primary" id="overlayBtn" type="button">Начать</button>
+          </div>
+          <div class="overlay__hint">
+            Подсказка: кликай по двум карточкам, чтобы проверить пару.
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
