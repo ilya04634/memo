@@ -14,6 +14,15 @@
   const overlayPillEl = document.getElementById("overlayPill");
   const overlayBtnEl = document.getElementById("overlayBtn");
 
+  const scoreRowEl = document.getElementById("scoreRow");
+  const playerNameEl = document.getElementById("playerName");
+  const submitScoreBtn = document.getElementById("submitScore");
+  const submitHintEl = document.getElementById("submitHint");
+
+  const lbListEl = document.getElementById("lbList");
+  const lbMetaEl = document.getElementById("lbMeta");
+  const lbRefreshBtn = document.getElementById("lbRefresh");
+
   const frontImages = Array.from({ length: TOTAL_PAIRS }, (_, idx) => {
     const num = idx + 1;
     return `sprites/frontSideCard${num}.png`;
@@ -28,6 +37,11 @@
   let timerId = null;
   let previewTimeoutId = null;
   let phase = "menu"; // menu | preview | play | win
+
+  let db = null;
+  let leaderboardEnabled = false;
+  let lastWin = null;
+  let submitting = false;
 
   function shuffleInPlace(arr) {
     for (let i = arr.length - 1; i > 0; i--) {
@@ -68,6 +82,12 @@
 
   function hideOverlay() {
     overlayEl.classList.add("is-hidden");
+  }
+
+  function setSubmitUIVisible(visible) {
+    scoreRowEl.classList.toggle("is-hidden", !visible);
+    submitHintEl.classList.toggle("is-hidden", !visible);
+    if (!visible) submitHintEl.textContent = "";
   }
 
   function showOverlay({ title, text, pill, buttonText }) {
@@ -139,6 +159,7 @@
     opened = [];
     clearPreviewTimeout();
     stopTimer();
+    setSubmitUIVisible(false);
     showOverlay({
       title: "Memory Cards",
       text: 'Нажми "Начать". Потом карточки откроются на пару секунд для запоминания и закроются.',
@@ -170,6 +191,7 @@
     stopTimer();
     const elapsed = performance.now() - startMs;
     setTime(elapsed);
+    lastWin = { timeMs: Math.floor(elapsed), moves };
 
     const bestKey = "memory_best_ms_v1";
     const prevBest = Number(localStorage.getItem(bestKey) || "0");
@@ -185,6 +207,162 @@
       pill: "Можно сыграть еще раз",
       buttonText: "Сыграть еще",
     });
+
+    if (leaderboardEnabled) {
+      setSubmitUIVisible(true);
+      submitHintEl.textContent = "Введите имя и отправьте результат в таблицу лидеров.";
+      if (!playerNameEl.value) {
+        const cachedName = String(localStorage.getItem("memory_player_name_v1") || "").trim();
+        if (cachedName) playerNameEl.value = cachedName.slice(0, 16);
+      }
+      submitScoreBtn.disabled = false;
+    } else {
+      setSubmitUIVisible(false);
+    }
+  }
+
+  function sanitizeName(raw) {
+    const trimmed = String(raw || "").trim();
+    const noAngles = trimmed.replace(/[<>]/g, "");
+    const noControls = noAngles.replace(/[\u0000-\u001f\u007f]/g, "");
+    return noControls.slice(0, 16);
+  }
+
+  function escapeHtml(text) {
+    return String(text)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+  function setLbMeta(text) {
+    lbMetaEl.textContent = text;
+  }
+
+  function renderLeaderboard(entries) {
+    lbListEl.innerHTML = "";
+    if (!entries.length) {
+      const li = document.createElement("li");
+      li.className = "leaderboard__item";
+      li.innerHTML = `<span class="leaderboard__name">Пока пусто</span><span class="leaderboard__score">--:--</span>`;
+      lbListEl.appendChild(li);
+      return;
+    }
+
+    for (const entry of entries) {
+      const li = document.createElement("li");
+      li.className = "leaderboard__item";
+      const name = escapeHtml(entry.name || "Player");
+      const score = `${formatTime(entry.timeMs)} · ${entry.moves} ход`;
+      li.innerHTML = `<span class="leaderboard__name">${name}</span><span class="leaderboard__score">${score}</span>`;
+      lbListEl.appendChild(li);
+    }
+  }
+
+  function firebaseIsConfigured() {
+    const cfg = window.FIREBASE_CONFIG;
+    return !!(cfg && typeof cfg === "object" && cfg.projectId);
+  }
+
+  function initFirebase() {
+    if (!window.firebase) {
+      leaderboardEnabled = false;
+      setLbMeta("Firebase SDK: не загрузился");
+      return;
+    }
+    if (!firebaseIsConfigured()) {
+      leaderboardEnabled = false;
+      setLbMeta("Firebase: не настроен");
+      return;
+    }
+
+    try {
+      if (!window.firebase.apps || window.firebase.apps.length === 0) {
+        window.firebase.initializeApp(window.FIREBASE_CONFIG);
+      }
+      db = window.firebase.firestore();
+      leaderboardEnabled = true;
+      setLbMeta("Firestore: подключен");
+    } catch (e) {
+      leaderboardEnabled = false;
+      setLbMeta("Firestore: ошибка инициализации");
+    }
+  }
+
+  async function loadLeaderboard() {
+    if (!leaderboardEnabled || !db) {
+      lbListEl.innerHTML = "";
+      const li = document.createElement("li");
+      li.className = "leaderboard__item";
+      const msg = firebaseIsConfigured()
+        ? "Лидерборд недоступен"
+        : "Заполни firebase-config.js";
+      li.innerHTML = `<span class="leaderboard__name">${msg}</span><span class="leaderboard__score">--:--</span>`;
+      lbListEl.appendChild(li);
+      return;
+    }
+
+    setLbMeta("Firestore: загрузка...");
+    try {
+      const collectionName = window.LEADERBOARD_COLLECTION || "leaderboard";
+      const snap = await db
+        .collection(collectionName)
+        .orderBy("timeMs", "asc")
+        .limit(10)
+        .get();
+
+      const entries = [];
+      snap.forEach((doc) => {
+        const d = doc.data() || {};
+        if (typeof d.timeMs !== "number" || typeof d.moves !== "number") return;
+        entries.push({ name: String(d.name || "Player"), timeMs: d.timeMs, moves: d.moves });
+      });
+
+      setLbMeta(`Firestore: топ ${entries.length}`);
+      renderLeaderboard(entries);
+    } catch (e) {
+      setLbMeta("Firestore: не удалось загрузить (проверь Rules/Index)");
+      renderLeaderboard([]);
+    }
+  }
+
+  async function submitScore() {
+    if (!leaderboardEnabled || !db) return;
+    if (!lastWin) return;
+    if (submitting) return;
+
+    const name = sanitizeName(playerNameEl.value);
+    if (name.length < 2) {
+      submitHintEl.textContent = "Имя слишком короткое (минимум 2 символа).";
+      return;
+    }
+
+    submitting = true;
+    submitScoreBtn.disabled = true;
+    submitHintEl.textContent = "Отправка...";
+
+    try {
+      const collectionName = window.LEADERBOARD_COLLECTION || "leaderboard";
+      const payload = {
+        name,
+        timeMs: lastWin.timeMs,
+        moves: lastWin.moves,
+        createdAt: window.firebase.firestore.FieldValue.serverTimestamp(),
+      };
+
+      localStorage.setItem("memory_player_name_v1", name);
+      await db.collection(collectionName).add(payload);
+
+      submitHintEl.textContent = "Готово: результат добавлен.";
+      await loadLeaderboard();
+    } catch (e) {
+      submitHintEl.textContent = "Ошибка отправки (проверь Firestore Rules).";
+    } finally {
+      submitting = false;
+      submitScoreBtn.disabled = false;
+    }
   }
 
   function onCardClick(cardKey) {
@@ -250,6 +428,8 @@
     moves = 0;
     locked = true;
     phase = "menu";
+    lastWin = null;
+    setSubmitUIVisible(false);
     setTime(0);
     setStats();
 
@@ -276,6 +456,13 @@
 
     restartBtn.addEventListener("click", () => resetGame({ reshuffle: true, goToMenu: false }));
 
+    lbRefreshBtn.addEventListener("click", () => loadLeaderboard());
+
+    submitScoreBtn.addEventListener("click", () => submitScore());
+    playerNameEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") submitScore();
+    });
+
     overlayBtnEl.addEventListener("click", () => {
       if (phase === "menu") {
         resetGame({ reshuffle: true, goToMenu: false });
@@ -295,6 +482,8 @@
     cards = buildDeck();
     render();
     wireEvents();
+    initFirebase();
+    loadLeaderboard();
     resetGame({ reshuffle: false, goToMenu: true });
   }
 

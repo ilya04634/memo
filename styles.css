@@ -117,13 +117,26 @@ body {
   color: white;
 }
 
+.btn--tiny {
+  padding: 8px 10px;
+  font-size: 12px;
+}
+
 .board-wrap {
   display: grid;
   place-items: center;
 }
 
+.layout {
+  width: min(1180px, 100%);
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: clamp(12px, 2.2vw, 18px);
+  align-items: start;
+}
+
 .board {
-  width: min(980px, 100%);
+  width: 100%;
   padding: clamp(12px, 2.6vw, 18px);
   border-radius: var(--radius);
   background: radial-gradient(
@@ -148,6 +161,9 @@ body {
   .actions {
     justify-content: flex-start;
   }
+  .layout {
+    grid-template-columns: 1fr;
+  }
   .board {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
@@ -157,6 +173,64 @@ body {
   .board {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+}
+
+.leaderboard {
+  border-radius: var(--radius);
+  padding: 14px 14px 12px;
+  background: linear-gradient(180deg, var(--panel-strong), var(--panel));
+  box-shadow: var(--shadow);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(8px);
+}
+
+.leaderboard__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.leaderboard__title {
+  font-size: 16px;
+  letter-spacing: 0.3px;
+}
+
+.leaderboard__meta {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.leaderboard__list {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 8px;
+  max-height: 520px;
+  overflow: auto;
+}
+
+.leaderboard__item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.leaderboard__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.leaderboard__score {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono",
+    monospace;
+  color: rgba(31, 35, 40, 0.86);
 }
 
 .card {
@@ -267,6 +341,31 @@ body {
 
 .overlay__row--actions {
   margin-top: 16px;
+}
+
+.overlay__row--score {
+  margin-top: 12px;
+}
+
+.input {
+  flex: 1 1 180px;
+  min-width: 160px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(0, 0, 0, 0.14);
+  background: rgba(255, 255, 255, 0.82);
+  font-family: inherit;
+  font-size: 14px;
+  outline: none;
+}
+
+.input:focus {
+  border-color: rgba(200, 93, 42, 0.65);
+  box-shadow: 0 0 0 3px rgba(200, 93, 42, 0.18);
+}
+
+.is-hidden {
+  display: none !important;
 }
 
 .pill {
