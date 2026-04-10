@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Профиль</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app" aria-label="Профиль">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand__title">Профиль</div>
+          <div class="brand__subtitle">Ник и аккаунт</div>
+        </div>
+        <div class="actions">
+          <a class="btn" href="index.html">Назад к игре</a>
+        </div>
+      </header>
+
+      <section class="board-wrap" aria-label="Настройки профиля">
+        <div class="profile">
+          <div class="profile__card">
+            <div class="profile__title">Аккаунт</div>
+            <div class="profile__row">
+              <div class="profile__label">Email</div>
+              <div class="profile__value" id="pEmail">---</div>
+            </div>
+            <div class="profile__row">
+              <div class="profile__label">Ник</div>
+              <div class="profile__value" id="pNick">---</div>
+            </div>
+
+            <div class="profile__actions">
+              <button class="btn btn--tiny" id="pEditNick" type="button">Сменить ник</button>
+              <button class="btn btn--tiny" id="pLogout" type="button">Выйти</button>
+            </div>
+
+            <div class="profile__edit is-hidden" id="pNickEdit">
+              <input class="input" id="pNickInput" type="text" inputmode="text" maxlength="16" placeholder="Ник (2-16)" />
+              <button class="btn btn--tiny btn--primary" id="pNickSave" type="button">Сохранить</button>
+            </div>
+
+            <div class="profile__hint" id="pHint"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Firebase (Auth + Firestore) -->
+    <script src="https://www.gstatic.com/firebasejs/12.7.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/12.7.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="profile.js"></script>
+  </body>
+</html>
+

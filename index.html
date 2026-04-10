@@ -37,7 +37,59 @@
       <section class="board-wrap" aria-label="Игровое поле">
         <div class="layout">
           <div class="board" id="board"></div>
+
           <aside class="leaderboard" aria-label="Таблица лидеров">
+            <div class="auth" aria-label="Аккаунт">
+              <div class="auth__head">
+                <div class="auth__title">Аккаунт</div>
+                <div class="auth__status" id="authStatus">Не выполнен вход</div>
+              </div>
+
+              <div class="auth__form" id="authForm">
+                <input
+                  class="input"
+                  id="authEmail"
+                  type="email"
+                  inputmode="email"
+                  autocomplete="email"
+                  placeholder="Email"
+                />
+                <input
+                  class="input"
+                  id="authPass"
+                  type="password"
+                  autocomplete="current-password"
+                  placeholder="Пароль (мин. 6)"
+                />
+                <input
+                  class="input is-hidden"
+                  id="authNick"
+                  type="text"
+                  inputmode="text"
+                  maxlength="16"
+                  placeholder="Ник (2-16) для лидерборда"
+                />
+                <div class="auth__actions">
+                  <button class="btn btn--tiny" id="authLogin" type="button">Войти</button>
+                  <button class="btn btn--tiny btn--primary" id="authRegister" type="button">
+                    Регистрация
+                  </button>
+                </div>
+              </div>
+
+              <div class="auth__info is-hidden" id="authInfo">
+                <div class="auth__nickline">
+                  Ник: <span class="auth__nick" id="authNickLabel">---</span>
+                </div>
+                <div class="auth__actions">
+                  <a class="btn btn--tiny" id="profileLink" href="profile.html">Профиль</a>
+                  <button class="btn btn--tiny" id="authLogout" type="button">Выйти</button>
+                </div>
+              </div>
+
+              <div class="auth__hint" id="authHint"></div>
+            </div>
+
             <div class="leaderboard__head">
               <div class="leaderboard__title">Leaderboard</div>
               <button class="btn btn--tiny" id="lbRefresh" type="button">Обновить</button>
@@ -57,10 +109,6 @@
           <div class="overlay__row">
             <div class="pill" id="overlayPill">7 пар</div>
           </div>
-          <div class="overlay__row overlay__row--score is-hidden" id="scoreRow" aria-label="Отправка результата">
-            <input class="input" id="playerName" type="text" inputmode="text" maxlength="16" placeholder="Имя (до 16)" />
-            <button class="btn" id="submitScore" type="button">В лидерборд</button>
-          </div>
           <div class="overlay__hint is-hidden" id="submitHint"></div>
           <div class="overlay__row overlay__row--actions">
             <button class="btn btn--primary" id="overlayBtn" type="button">Начать</button>
@@ -72,8 +120,9 @@
       </section>
     </main>
 
-    <!-- Firebase (Firestore) -->
+    <!-- Firebase (Auth + Firestore) -->
     <script src="https://www.gstatic.com/firebasejs/12.7.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/12.7.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore-compat.js"></script>
     <script src="firebase-config.js"></script>
     <script src="script.js"></script>
