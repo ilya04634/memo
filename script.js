@@ -905,13 +905,6 @@
         return setHomeHint("Комната уже не в лобби.");
       }
 
-      // Best-effort capacity check (race conditions are ok for now).
-      const maxPlayers = Number(room.maxPlayers || 0);
-      if (maxPlayers) {
-        const playersSnap = await ref.collection("players").get();
-        if (playersSnap.size >= maxPlayers) return setHomeHint("Комната уже заполнена.");
-      }
-
       await ref.collection("players").doc(currentUser.uid).set(
         {
           uid: currentUser.uid,

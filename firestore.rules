@@ -58,8 +58,10 @@ service cloud.firestore {
     }
 
     match /rooms/{code}/players/{uid} {
-      allow list: if false;
-      allow get: if request.auth != null;
+      // Only room members can see the lobby players list.
+      allow list, get: if
+        request.auth != null &&
+        exists(/databases/$(database)/documents/rooms/$(code)/players/$(request.auth.uid));
 
       allow create: if
         request.auth != null &&
