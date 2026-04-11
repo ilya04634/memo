@@ -708,6 +708,11 @@ body {
   flex-wrap: wrap;
 }
 
+.modal__toggle {
+  width: fit-content;
+  justify-self: start;
+}
+
 .modal__hint {
   margin-top: 10px;
   font-size: 12px;

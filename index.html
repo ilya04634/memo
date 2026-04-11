@@ -177,10 +177,14 @@
           <div class="modal__form">
             <input class="input" id="mEmail" type="email" inputmode="email" autocomplete="email" placeholder="Email" />
             <input class="input" id="mPass" type="password" autocomplete="current-password" placeholder="Пароль (мин. 6)" />
+            <button class="btn btn--tiny modal__toggle is-hidden" id="mTogglePass" type="button">
+              Показать пароль
+            </button>
             <input class="input is-hidden" id="mNick" type="text" maxlength="16" placeholder="Ник (2-16)" />
           </div>
           <div class="modal__actions">
             <button class="btn btn--primary" id="mSubmit" type="button">Продолжить</button>
+            <button class="btn" id="mGoogle" type="button">Google</button>
             <button class="btn" id="mClose" type="button">Отмена</button>
           </div>
           <div class="modal__hint" id="mHint"></div>

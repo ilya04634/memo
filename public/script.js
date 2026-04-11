@@ -85,7 +85,9 @@
   const mEmailEl = document.getElementById("mEmail");
   const mPassEl = document.getElementById("mPass");
   const mNickEl = document.getElementById("mNick");
+  const mTogglePassBtn = document.getElementById("mTogglePass");
   const mSubmitBtn = document.getElementById("mSubmit");
+  const mGoogleBtn = document.getElementById("mGoogle");
   const mCloseBtn = document.getElementById("mClose");
   const mHintEl = document.getElementById("mHint");
 
@@ -182,9 +184,12 @@
     authMode = mode;
     authModalTitleEl.textContent = mode === "register" ? "Регистрация" : "Логин";
     mNickEl.classList.toggle("is-hidden", mode !== "register");
+    mTogglePassBtn.classList.toggle("is-hidden", mode !== "register");
     mSubmitBtn.textContent = mode === "register" ? "Создать аккаунт" : "Войти";
     setModalHint("");
     authModalEl.classList.remove("is-hidden");
+    mPassEl.type = "password";
+    mTogglePassBtn.textContent = "Показать пароль";
     if (mode === "register") mNickEl.focus();
     else mEmailEl.focus();
   }
@@ -213,6 +218,52 @@
         return "Сетевая ошибка. Проверь интернет/блокировки.";
       default:
         return code ? `Firebase Auth: ${code}` : "Firebase Auth: неизвестная ошибка";
+    }
+  }
+
+  function togglePasswordVisibility() {
+    if (mPassEl.type === "password") {
+      mPassEl.type = "text";
+      mTogglePassBtn.textContent = "Скрыть пароль";
+    } else {
+      mPassEl.type = "password";
+      mTogglePassBtn.textContent = "Показать пароль";
+    }
+  }
+
+  async function signInWithGoogle() {
+    if (!auth) return;
+    if (!window.firebase) return;
+
+    setModalHint("Google вход...");
+    try {
+      const provider = new window.firebase.auth.GoogleAuthProvider();
+      const cred = await auth.signInWithPopup(provider);
+      const user = cred.user;
+
+      // If user is using "Регистрация" flow and typed a nick, apply it.
+      if (authMode === "register") {
+        const nick = sanitizeNick(mNickEl.value || "");
+        if (nick.length >= 2 && user && user.displayName !== nick) {
+          try {
+            await user.updateProfile({ displayName: nick });
+          } catch (_) {
+            // ignore
+          }
+        }
+      }
+
+      closeAuthModal();
+
+      // If Google displayName is missing/too short, guide user to profile.
+      const finalNick = sanitizeNick((auth.currentUser && auth.currentUser.displayName) || "");
+      if (finalNick.length < 2) {
+        setHomeHint("Вход через Google выполнен. Задай ник в профиле, чтобы попадать в лидерборд/PVP.");
+      } else {
+        setHomeHint("");
+      }
+    } catch (e) {
+      setModalHint(explainAuthError(e));
     }
   }
 
@@ -1169,6 +1220,17 @@
     openRegisterBtn.addEventListener("click", () => openAuthModal("register"));
     mCloseBtn.addEventListener("click", () => closeAuthModal());
     mSubmitBtn.addEventListener("click", () => submitAuthModal());
+    mGoogleBtn.addEventListener("click", () => signInWithGoogle());
+    mTogglePassBtn.addEventListener("click", () => togglePasswordVisibility());
+    mPassEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") submitAuthModal();
+    });
+    mEmailEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") submitAuthModal();
+    });
+    mNickEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") submitAuthModal();
+    });
 
     authModalEl.addEventListener("click", (e) => {
       if (e.target === authModalEl) closeAuthModal();
