@@ -58,10 +58,12 @@ service cloud.firestore {
     }
 
     match /rooms/{code}/players/{uid} {
-      // Only room members can see the lobby players list.
+      // Lobby visibility: any authed user who knows the room code can read the players list
+      // while the room is active. This keeps UX simple for invites-by-code.
       allow list, get: if
         request.auth != null &&
-        exists(/databases/$(database)/documents/rooms/$(code)/players/$(request.auth.uid));
+        exists(/databases/$(database)/documents/rooms/$(code)) &&
+        get(/databases/$(database)/documents/rooms/$(code)).data.status in ['lobby','starting'];
 
       allow create: if
         request.auth != null &&

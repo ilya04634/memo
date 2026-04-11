@@ -1057,21 +1057,31 @@
           }
         }
       },
-      () => {
-        setLobbyHint("Не удалось подписаться на комнату.");
+      (err) => {
+        setLobbyHint(explainFirestoreError(err));
       }
     );
 
-    playersUnsub = ref.collection("players").orderBy("joinedAt", "asc").onSnapshot(
+    playersUnsub = ref.collection("players").onSnapshot(
       (snap) => {
         const list = [];
         snap.forEach((d) => list.push(d.data() || {}));
+
+        // Keep stable ordering without relying on Firestore orderBy (avoids index/rules edge cases).
+        list.sort((a, b) => {
+          const aj = a.joinedAt?.toMillis ? a.joinedAt.toMillis() : 0;
+          const bj = b.joinedAt?.toMillis ? b.joinedAt.toMillis() : 0;
+          if (aj !== bj) return aj - bj;
+          const an = String(a.nick || "");
+          const bn = String(b.nick || "");
+          return an.localeCompare(bn);
+        });
+
         currentRoomPlayers = list;
         renderLobby();
 
         // Update PVP leaderboard if in match UI.
         if (!pvpPanelEl.classList.contains("is-hidden")) {
-          // Sort: finished first by time, otherwise by moves.
           const sorted = [...list].sort((a, b) => {
             const at = typeof a.timeMs === "number" ? a.timeMs : Number.POSITIVE_INFINITY;
             const bt = typeof b.timeMs === "number" ? b.timeMs : Number.POSITIVE_INFINITY;
@@ -1083,8 +1093,8 @@
           renderPvpList(sorted);
         }
       },
-      () => {
-        setLobbyHint("Не удалось загрузить игроков.");
+      (err) => {
+        setLobbyHint(explainFirestoreError(err));
       }
     );
   }
