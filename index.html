@@ -7,14 +7,14 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <main class="app" aria-label="Игра на память: найди пары">
+    <main class="app" aria-label="Memory Cards">
       <header class="topbar">
         <div class="brand">
           <div class="brand__title">Memory Cards</div>
           <div class="brand__subtitle">Найди все пары по памяти</div>
         </div>
 
-        <div class="stats" aria-label="Статистика">
+        <div class="stats is-hidden" id="statsBar" aria-label="Статистика">
           <div class="stat">
             <div class="stat__label">Время</div>
             <div class="stat__value" id="time">00:00</div>
@@ -25,97 +25,165 @@
           </div>
           <div class="stat">
             <div class="stat__label">Пары</div>
-            <div class="stat__value" id="pairs">0/7</div>
+            <div class="stat__value" id="pairs">0/0</div>
           </div>
         </div>
 
-        <div class="actions">
-          <button class="btn" id="restart" type="button">Сначала</button>
+        <div class="top-actions">
+          <button class="btn btn--tiny is-hidden" id="toHome" type="button">Меню</button>
+          <button class="btn btn--tiny is-hidden" id="restart" type="button">Заново</button>
+
+          <div class="authbar" id="authBarLoggedOut" aria-label="Вход">
+            <button class="btn btn--tiny" id="openLogin" type="button">Логин</button>
+            <button class="btn btn--tiny btn--primary" id="openRegister" type="button">
+              Регистрация
+            </button>
+          </div>
+
+          <div class="authbar is-hidden" id="authBarLoggedIn" aria-label="Профиль">
+            <a class="btn btn--tiny" id="authProfile" href="profile.html">Профиль</a>
+          </div>
         </div>
       </header>
 
-      <section class="board-wrap" aria-label="Игровое поле">
-        <div class="layout">
-          <div class="board" id="board"></div>
+      <section class="home" id="homeScreen" aria-label="Главное меню">
+        <div class="menu">
+          <div class="menu__card">
+            <div class="menu__title">Меню</div>
 
-          <aside class="leaderboard" aria-label="Таблица лидеров">
-            <div class="auth" aria-label="Аккаунт">
-              <div class="auth__head">
-                <div class="auth__title">Аккаунт</div>
-                <div class="auth__status" id="authStatus">Не выполнен вход</div>
-              </div>
-
-              <div class="auth__form" id="authForm">
-                <input
-                  class="input"
-                  id="authEmail"
-                  type="email"
-                  inputmode="email"
-                  autocomplete="email"
-                  placeholder="Email"
-                />
-                <input
-                  class="input"
-                  id="authPass"
-                  type="password"
-                  autocomplete="current-password"
-                  placeholder="Пароль (мин. 6)"
-                />
-                <input
-                  class="input is-hidden"
-                  id="authNick"
-                  type="text"
-                  inputmode="text"
-                  maxlength="16"
-                  placeholder="Ник (2-16) для лидерборда"
-                />
-                <div class="auth__actions">
-                  <button class="btn btn--tiny" id="authLogin" type="button">Войти</button>
-                  <button class="btn btn--tiny btn--primary" id="authRegister" type="button">
-                    Регистрация
-                  </button>
-                </div>
-              </div>
-
-              <div class="auth__info is-hidden" id="authInfo">
-                <div class="auth__nickline">
-                  Ник: <span class="auth__nick" id="authNickLabel">---</span>
-                </div>
-                <div class="auth__actions">
-                  <a class="btn btn--tiny" id="profileLink" href="profile.html">Профиль</a>
-                  <button class="btn btn--tiny" id="authLogout" type="button">Выйти</button>
-                </div>
-              </div>
-
-              <div class="auth__hint" id="authHint"></div>
+            <div class="menu__stack" id="homeMain">
+              <button class="menu-btn" id="goSingle" type="button">Одиночная игра</button>
+              <button class="menu-btn" id="goMulti" type="button">Мультиплеер</button>
+              <button class="menu-btn" id="goSettings" type="button">Настройки</button>
             </div>
 
-            <div class="leaderboard__head">
-              <div class="leaderboard__title">Leaderboard</div>
-              <button class="btn btn--tiny" id="lbRefresh" type="button">Обновить</button>
+            <div class="menu__stack is-hidden" id="singleMenu" aria-label="Выбор сложности">
+              <div class="menu__subtitle">Выбери сложность</div>
+              <button class="menu-btn" data-difficulty="easy" type="button">Легкий — бала</button>
+              <button class="menu-btn" data-difficulty="medium" type="button">Средний — жигит</button>
+              <button class="menu-btn" data-difficulty="hard" type="button">Сложный — баатыр</button>
+              <button class="menu-btn menu-btn--ghost" id="backFromSingle" type="button">Назад</button>
             </div>
-            <div class="leaderboard__meta" id="lbMeta">Firebase: не настроен</div>
-            <ol class="leaderboard__list" id="lbList"></ol>
-          </aside>
+
+            <div class="menu__stack is-hidden" id="multiMenu" aria-label="Мультиплеер">
+              <div class="menu__subtitle">Мультиплеер</div>
+              <button class="menu-btn" id="goCreateRoom" type="button">Создать комнату</button>
+              <button class="menu-btn" id="goJoinRoom" type="button">Присоединиться</button>
+              <button class="menu-btn menu-btn--ghost" id="backFromMulti" type="button">Назад</button>
+            </div>
+
+            <div class="menu__stack is-hidden" id="createMenu" aria-label="Создание комнаты">
+              <div class="menu__subtitle">Создать комнату</div>
+              <div class="menu__row">
+                <label class="menu__label">Сложность</label>
+                <select class="select" id="roomDifficulty">
+                  <option value="easy">Легкий — бала</option>
+                  <option value="medium" selected>Средний — жигит</option>
+                  <option value="hard">Сложный — баатыр</option>
+                </select>
+              </div>
+              <div class="menu__row">
+                <label class="menu__label">Игроков (2–20)</label>
+                <input class="input" id="roomMaxPlayers" type="number" min="2" max="20" value="2" />
+              </div>
+              <button class="menu-btn" id="createRoomBtn" type="button">Создать</button>
+              <div class="menu__code is-hidden" id="roomCodeWrap">
+                Код комнаты: <span class="menu__codeval" id="roomCode">-----</span>
+              </div>
+              <button class="menu-btn menu-btn--ghost" id="backFromCreate" type="button">Назад</button>
+            </div>
+
+            <div class="menu__stack is-hidden" id="joinMenu" aria-label="Подключение к комнате">
+              <div class="menu__subtitle">Присоединиться</div>
+              <input class="input" id="joinCode" type="text" inputmode="numeric" maxlength="5" placeholder="5‑значный код" />
+              <button class="menu-btn" id="joinRoomBtn" type="button">Подключиться</button>
+              <button class="menu-btn menu-btn--ghost" id="backFromJoin" type="button">Назад</button>
+            </div>
+
+            <div class="menu__stack is-hidden" id="lobbyMenu" aria-label="Лобби комнаты">
+              <div class="menu__subtitle">Лобби</div>
+              <div class="menu__code">
+                Код комнаты: <span class="menu__codeval" id="lobbyCode">-----</span>
+              </div>
+              <div class="menu__text" id="lobbyMeta">Ожидание игроков...</div>
+              <div class="menu__text">
+                Игроки: <span id="lobbyCount">0</span>/<span id="lobbyMax">0</span>
+              </div>
+              <ul class="lobby__list" id="lobbyList"></ul>
+              <div class="menu__row">
+                <button class="menu-btn is-hidden" id="startPvpBtn" type="button">Начать игру</button>
+                <button class="menu-btn menu-btn--ghost" id="leaveLobbyBtn" type="button">Выйти из лобби</button>
+              </div>
+              <div class="menu__hint" id="lobbyHint"></div>
+            </div>
+
+            <div class="menu__stack is-hidden" id="settingsMenu" aria-label="Настройки">
+              <div class="menu__subtitle">Настройки</div>
+              <div class="menu__text">Скоро: звук, анимации, подсказки.</div>
+              <button class="menu-btn menu-btn--ghost" id="backFromSettings" type="button">Назад</button>
+            </div>
+
+            <div class="menu__hint" id="homeHint"></div>
+          </div>
         </div>
       </section>
 
-      <section class="overlay" id="overlay" aria-live="polite" aria-atomic="true">
-        <div class="overlay__card">
-          <div class="overlay__title" id="overlayTitle">Memory Cards</div>
-          <div class="overlay__text" id="overlayText">
-            Нажми "Начать". Потом карточки откроются на пару секунд для запоминания и закроются.
+      <section class="game is-hidden" id="gameScreen" aria-label="Одиночная игра">
+        <section class="board-wrap" aria-label="Игровое поле">
+          <div class="layout">
+            <div class="board" id="board"></div>
+
+            <aside class="leaderboard" aria-label="Таблица лидеров">
+              <div id="globalLbPanel">
+                <div class="leaderboard__head">
+                  <div class="leaderboard__title">Leaderboard</div>
+                  <button class="btn btn--tiny" id="lbRefresh" type="button">Обновить</button>
+                </div>
+                <div class="leaderboard__meta" id="lbMeta">Firebase: не настроен</div>
+                <ol class="leaderboard__list" id="lbList"></ol>
+              </div>
+
+              <div class="is-hidden" id="pvpPanel" aria-label="PVP лидерборд">
+                <div class="leaderboard__head">
+                  <div class="leaderboard__title">PVP матч</div>
+                  <div class="pill" id="pvpCodePill">Код: -----</div>
+                </div>
+                <div class="leaderboard__meta" id="pvpMeta">Ожидание старта...</div>
+                <ol class="leaderboard__list" id="pvpList"></ol>
+              </div>
+            </aside>
           </div>
+        </section>
+      </section>
+
+      <section class="overlay is-hidden" id="overlay" aria-live="polite" aria-atomic="true">
+        <div class="overlay__card">
+          <div class="overlay__title" id="overlayTitle">Готово!</div>
+          <div class="overlay__text" id="overlayText"></div>
           <div class="overlay__row">
-            <div class="pill" id="overlayPill">7 пар</div>
+            <div class="pill" id="overlayPill">Результат</div>
           </div>
           <div class="overlay__hint is-hidden" id="submitHint"></div>
           <div class="overlay__row overlay__row--actions">
-            <button class="btn btn--primary" id="overlayBtn" type="button">Начать</button>
+            <button class="btn btn--primary" id="overlayBtn" type="button">Сыграть еще</button>
+            <button class="btn" id="overlayHomeBtn" type="button">В меню</button>
           </div>
-          <div class="overlay__hint">
-            Подсказка: кликай по двум карточкам, чтобы проверить пару.
+        </div>
+      </section>
+
+      <section class="modal is-hidden" id="authModal" aria-label="Авторизация" aria-live="polite">
+        <div class="modal__card">
+          <div class="modal__title" id="authModalTitle">Вход</div>
+          <div class="modal__form">
+            <input class="input" id="mEmail" type="email" inputmode="email" autocomplete="email" placeholder="Email" />
+            <input class="input" id="mPass" type="password" autocomplete="current-password" placeholder="Пароль (мин. 6)" />
+            <input class="input is-hidden" id="mNick" type="text" maxlength="16" placeholder="Ник (2-16)" />
           </div>
+          <div class="modal__actions">
+            <button class="btn btn--primary" id="mSubmit" type="button">Продолжить</button>
+            <button class="btn" id="mClose" type="button">Отмена</button>
+          </div>
+          <div class="modal__hint" id="mHint"></div>
         </div>
       </section>
     </main>

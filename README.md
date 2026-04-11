@@ -77,6 +77,14 @@ service cloud.firestore {
 
 Если хочешь другую коллекцию, поменяй `window.LEADERBOARD_COLLECTION` в `firebase-config.js`.
 
+## PVP комнаты (Firestore)
+
+PVP использует документы:
+- `rooms/{code}`: комната (код 5 цифр, сложность, лимит игроков, хост, seed, статус, startAt)
+- `rooms/{code}/players/{uid}`: игроки (ник, ходы, время, finishedAt)
+
+Правила для `rooms` и `players` уже добавлены в `firestore.rules` (не забудь задеплоить rules).
+
 ## Что уже сделано
 
 - После победы рекорд отправляется автоматически (если ты вошел в аккаунт).
