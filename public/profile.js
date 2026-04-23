@@ -83,15 +83,14 @@
       await user.updateProfile({ displayName: nickname });
       render(user);
 
-      // Keep leaderboard name in sync if row exists.
-      const collectionName = window.LEADERBOARD_COLLECTION || "leaderboard";
-      const docRef = db.collection(collectionName).doc(user.uid);
-      const snap = await docRef.get();
-      if (snap.exists) {
-        await docRef.update({
-          name: nickname,
-          updatedAt: window.firebase.firestore.FieldValue.serverTimestamp(),
-        });
+      // Keep leaderboard name in sync for all difficulties if rows exist.
+      const updatedAt = window.firebase.firestore.FieldValue.serverTimestamp();
+      for (const diff of ["easy", "medium", "hard", "superhard"]) {
+        const docRef = db.collection("leaderboards").doc(diff).collection("entries").doc(user.uid);
+        const snap = await docRef.get();
+        if (snap.exists) {
+          await docRef.update({ name: nickname, updatedAt });
+        }
       }
 
       setHint("Ник сохранен.");
@@ -135,4 +134,3 @@
 
   init();
 })();
-

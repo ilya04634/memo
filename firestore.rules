@@ -1,11 +1,14 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /leaderboard/{uid} {
+    // Per-difficulty leaderboards:
+    // /leaderboards/{difficulty}/entries/{uid}
+    match /leaderboards/{difficulty}/entries/{uid} {
       allow read: if true;
       allow create, update: if
         request.auth != null &&
         request.auth.uid == uid &&
+        difficulty in ['easy','medium','hard','superhard'] &&
         request.resource.data.keys().hasOnly(['name','timeMs','moves','createdAt','updatedAt']) &&
         request.resource.data.name is string &&
         request.resource.data.name.size() >= 2 &&
@@ -19,6 +22,13 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Backward-compat (old single leaderboard). Can be deleted later.
+    match /leaderboard/{uid} {
+      allow read: if true;
+      allow create, update: if false;
+      allow delete: if false;
+    }
+
     match /rooms/{code} {
       allow list: if false;
       allow get: if request.auth != null;
@@ -26,33 +36,36 @@ service cloud.firestore {
       allow create: if
         request.auth != null &&
         request.resource.data.keys().hasOnly([
-          'code','difficulty','maxPlayers','hostUid','status','seed','startAt','createdAt','updatedAt'
+          'code','difficulty','maxPlayers','hostUid','status','seed','matchId','startAt','createdAt','updatedAt'
         ]) &&
         request.resource.data.code is string &&
         request.resource.data.code == code &&
         request.resource.data.difficulty is string &&
+        request.resource.data.difficulty in ['easy','medium','hard','superhard'] &&
         request.resource.data.maxPlayers is int &&
         request.resource.data.maxPlayers >= 2 &&
         request.resource.data.maxPlayers <= 20 &&
         request.resource.data.hostUid is string &&
         request.resource.data.hostUid == request.auth.uid &&
         request.resource.data.status is string &&
-        request.resource.data.seed is int;
+        request.resource.data.seed is int &&
+        request.resource.data.matchId is int;
 
       allow update: if
         request.auth != null &&
         request.auth.uid == resource.data.hostUid &&
         request.resource.data.keys().hasOnly([
-          'code','difficulty','maxPlayers','hostUid','status','seed','startAt','createdAt','updatedAt'
+          'code','difficulty','maxPlayers','hostUid','status','seed','matchId','startAt','createdAt','updatedAt'
         ]) &&
         resource.data.hostUid is string &&
         resource.data.code == code &&
         request.resource.data.code == resource.data.code &&
         request.resource.data.hostUid == resource.data.hostUid &&
-        request.resource.data.difficulty == resource.data.difficulty &&
+        request.resource.data.difficulty in ['easy','medium','hard','superhard'] &&
         request.resource.data.maxPlayers == resource.data.maxPlayers &&
-        request.resource.data.seed == resource.data.seed &&
-        request.resource.data.status is string;
+        request.resource.data.seed is int &&
+        request.resource.data.matchId is int &&
+        request.resource.data.status in ['lobby','starting','playing','closed'];
 
       allow delete: if false;
     }

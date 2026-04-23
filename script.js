@@ -2,7 +2,8 @@
   const DIFFICULTIES = {
     easy: { label: "Легкий — бала", pairs: 4, previewSec: 4, cols: 4 },
     medium: { label: "Средний — жигит", pairs: 6, previewSec: 3, cols: 4 },
-    hard: { label: "Сложный — баатыр", pairs: 7, previewSec: 2, cols: 7 },
+    hard: { label: "Сложный — баатыр", pairs: 8, previewSec: 2, cols: 5 },
+    superhard: { label: "Суперсложно — Эмирхан", pairs: 10, previewSec: 2, cols: 5 },
   };
 
   const FRONT_SPRITES_TOTAL = 7;
@@ -26,10 +27,13 @@
   const joinMenuEl = document.getElementById("joinMenu");
   const lobbyMenuEl = document.getElementById("lobbyMenu");
   const settingsMenuEl = document.getElementById("settingsMenu");
+  const leaderMenuEl = document.getElementById("leaderMenu");
+  const leaderViewEl = document.getElementById("leaderView");
   const homeHintEl = document.getElementById("homeHint");
 
   const goSingleBtn = document.getElementById("goSingle");
   const goMultiBtn = document.getElementById("goMulti");
+  const goLeaderboardBtn = document.getElementById("goLeaderboard");
   const goSettingsBtn = document.getElementById("goSettings");
   const backFromSingleBtn = document.getElementById("backFromSingle");
   const backFromMultiBtn = document.getElementById("backFromMulti");
@@ -38,6 +42,12 @@
   const backFromCreateBtn = document.getElementById("backFromCreate");
   const backFromJoinBtn = document.getElementById("backFromJoin");
   const backFromSettingsBtn = document.getElementById("backFromSettings");
+  const backFromLeaderBtn = document.getElementById("backFromLeader");
+  const backFromLeaderViewBtn = document.getElementById("backFromLeaderView");
+
+  const leaderTitleEl = document.getElementById("leaderTitle");
+  const leaderMetaEl = document.getElementById("leaderMeta");
+  const leaderListEl = document.getElementById("leaderList");
 
   const roomDifficultyEl = document.getElementById("roomDifficulty");
   const roomMaxPlayersEl = document.getElementById("roomMaxPlayers");
@@ -53,6 +63,8 @@
   const lobbyCountEl = document.getElementById("lobbyCount");
   const lobbyMaxEl = document.getElementById("lobbyMax");
   const lobbyListEl = document.getElementById("lobbyList");
+  const lobbyDifficultyEl = document.getElementById("lobbyDifficulty");
+  const saveLobbyDifficultyBtn = document.getElementById("saveLobbyDifficulty");
   const startPvpBtn = document.getElementById("startPvpBtn");
   const leaveLobbyBtn = document.getElementById("leaveLobbyBtn");
   const lobbyHintEl = document.getElementById("lobbyHint");
@@ -102,6 +114,7 @@
   let difficultyKey = "medium";
   let totalPairs = DIFFICULTIES[difficultyKey].pairs;
   let previewSec = DIFFICULTIES[difficultyKey].previewSec;
+  let hardMistakes = 0;
 
   let cards = [];
   let opened = [];
@@ -123,6 +136,9 @@
   let playersUnsub = null;
   let startCountdownId = null;
   let pvpStartAtMs = 0;
+  const PVP_PREVIEW_MS = 500;
+  const SUPERHARD_SHUFFLE_ERRORS = 4;
+  let lastMatchId = null;
 
   function $(id) {
     return document.getElementById(id);
@@ -341,7 +357,7 @@
         currentUser = u || null;
         showAuthBars();
         // Refresh leaderboard for consistent rendering.
-        loadLeaderboard();
+        loadLeaderboardFor(difficultyKey, { target: "side" });
       });
     } catch (e) {
       firebaseReady = false;
@@ -349,13 +365,13 @@
     }
   }
 
-  function renderLeaderboard(entries) {
-    lbListEl.innerHTML = "";
+  function renderLeaderboardList(listEl, entries) {
+    listEl.innerHTML = "";
     if (!entries.length) {
       const li = document.createElement("li");
       li.className = "leaderboard__item";
       li.innerHTML = `<span class="leaderboard__name">Пока пусто</span><span class="leaderboard__score">--:--</span>`;
-      lbListEl.appendChild(li);
+      listEl.appendChild(li);
       return;
     }
 
@@ -365,39 +381,58 @@
       const name = escapeHtml(entry.name || "Player");
       const score = `${formatTime(entry.timeMs)} · ${entry.moves} ход`;
       li.innerHTML = `<span class="leaderboard__name">${name}</span><span class="leaderboard__score">${score}</span>`;
-      lbListEl.appendChild(li);
+      listEl.appendChild(li);
     }
   }
 
-  async function loadLeaderboard() {
+  function difficultyExists(key) {
+    return !!DIFFICULTIES[key];
+  }
+
+  function leaderboardCollectionForDifficulty(diffKey) {
+    const key = difficultyExists(diffKey) ? diffKey : "medium";
+    return db.collection("leaderboards").doc(key).collection("entries");
+  }
+
+  async function loadLeaderboardFor(diffKey, { target }) {
+    const safeKey = difficultyExists(diffKey) ? diffKey : "medium";
+    const listEl = target === "home" ? leaderListEl : lbListEl;
+
+    const setMeta = (text) => {
+      if (target === "home") leaderMetaEl.textContent = text;
+      else setLbMeta(text);
+    };
+
+    if (target === "home") {
+      leaderTitleEl.textContent = `Лидерборд · ${DIFFICULTIES[safeKey].label}`;
+    }
+
     if (!firebaseReady || !db) {
-      lbListEl.innerHTML = "";
+      listEl.innerHTML = "";
       const li = document.createElement("li");
       li.className = "leaderboard__item";
       const msg = firebaseIsConfigured() ? "Лидерборд недоступен" : "Заполни firebase-config.js";
       li.innerHTML = `<span class="leaderboard__name">${msg}</span><span class="leaderboard__score">--:--</span>`;
-      lbListEl.appendChild(li);
+      listEl.appendChild(li);
+      setMeta(msg);
       return;
     }
 
-    setLbMeta("Firestore: загрузка...");
+    setMeta("Firestore: загрузка...");
     try {
-      const collectionName = window.LEADERBOARD_COLLECTION || "leaderboard";
-      const snap = await db.collection(collectionName).orderBy("timeMs", "asc").limit(10).get();
-
+      const snap = await leaderboardCollectionForDifficulty(safeKey).orderBy("timeMs", "asc").limit(10).get();
       const entries = [];
       snap.forEach((doc) => {
         const d = doc.data() || {};
         if (typeof d.timeMs !== "number" || typeof d.moves !== "number") return;
         entries.push({ name: String(d.name || "Player"), timeMs: d.timeMs, moves: d.moves });
       });
-
-      setLbMeta(`Firestore: топ ${entries.length}`);
-      renderLeaderboard(entries);
+      setMeta(`Топ ${entries.length}`);
+      renderLeaderboardList(listEl, entries);
     } catch (e) {
       const code = String(e?.code || "");
-      setLbMeta(code ? `Firestore: ${code}` : "Firestore: не удалось загрузить");
-      renderLeaderboard([]);
+      setMeta(code ? `Firestore: ${code}` : "Firestore: не удалось загрузить");
+      renderLeaderboardList(listEl, []);
     }
   }
 
@@ -410,6 +445,8 @@
       joinMenuEl,
       lobbyMenuEl,
       settingsMenuEl,
+      leaderMenuEl,
+      leaderViewEl,
     ];
     for (const el of stacks) el.classList.add("is-hidden");
     targetEl.classList.remove("is-hidden");
@@ -464,6 +501,10 @@
 
   function setBoardCols(cols) {
     boardEl.style.setProperty("--board-cols", String(cols));
+  }
+
+  function isHardMode() {
+    return difficultyKey === "superhard";
   }
 
   function shuffleInPlace(arr) {
@@ -566,6 +607,14 @@
     return boardEl.querySelector(`.card[data-key="${key}"]`);
   }
 
+  function setCardFrontImage(key, img) {
+    const el = getCardElByKey(key);
+    if (!el) return;
+    const front = el.querySelector(".card-front");
+    if (!front) return;
+    front.style.backgroundImage = `url('${img}')`;
+  }
+
   function setCardFlipped(key, flipped) {
     const card = cards.find((c) => c.key === key);
     if (!card) return;
@@ -592,6 +641,47 @@
     cards.forEach((c) => {
       if (!c.matched) setCardFlipped(c.key, false);
     });
+  }
+
+  function shuffleClosedCardsHard() {
+    const closed = cards.filter((c) => !c.matched && !c.flipped);
+    if (closed.length < 2) return;
+
+    locked = true;
+    boardEl.classList.add("is-shuffling");
+    for (const c of closed) {
+      const el = getCardElByKey(c.key);
+      if (el) el.classList.add("is-shuffling");
+    }
+
+    window.setTimeout(() => {
+      const payloads = closed.map((c) => ({ pairId: c.pairId, img: c.img }));
+      shuffleInPlace(payloads);
+
+      for (let i = 0; i < closed.length; i++) {
+        closed[i].pairId = payloads[i].pairId;
+        closed[i].img = payloads[i].img;
+        setCardFrontImage(closed[i].key, closed[i].img);
+      }
+
+      window.setTimeout(() => {
+        boardEl.classList.remove("is-shuffling");
+        for (const c of closed) {
+          const el = getCardElByKey(c.key);
+          if (el) el.classList.remove("is-shuffling");
+        }
+        locked = false;
+      }, 260);
+    }, 260);
+  }
+
+  function onWrongAttempt() {
+    if (!isHardMode()) return;
+    hardMistakes += 1;
+    if (hardMistakes >= SUPERHARD_SHUFFLE_ERRORS) {
+      hardMistakes = 0;
+      shuffleClosedCardsHard();
+    }
   }
 
   function isBetterScore(next, prev) {
@@ -624,8 +714,7 @@
 
     submitting = true;
     try {
-      const collectionName = window.LEADERBOARD_COLLECTION || "leaderboard";
-      const docRef = db.collection(collectionName).doc(currentUser.uid);
+      const docRef = leaderboardCollectionForDifficulty(difficultyKey).doc(currentUser.uid);
       const snap = await docRef.get();
       const next = { timeMs: lastWin.timeMs, moves: lastWin.moves };
       const updatedAt = window.firebase.firestore.FieldValue.serverTimestamp();
@@ -647,7 +736,7 @@
         }
       }
 
-      await loadLeaderboard();
+      await loadLeaderboardFor(difficultyKey, { target: "side" });
     } catch (e) {
       submitHintEl.textContent = explainFirestoreError(e);
     } finally {
@@ -702,6 +791,7 @@
     opened = [];
     matched = new Set();
     moves = 0;
+    hardMistakes = 0;
     locked = true;
     phase = "idle";
     lastWin = null;
@@ -796,6 +886,7 @@
       } else {
         setCardFlipped(k1, false);
         setCardFlipped(k2, false);
+        onWrongAttempt();
       }
 
       opened = [];
@@ -813,6 +904,7 @@
     setBoardCols(cfg.cols);
     showGameUI();
     showGlobalLeaderboardUI();
+    loadLeaderboardFor(difficultyKey, { target: "side" });
     resetGame(true);
   }
 
@@ -858,6 +950,7 @@
           hostUid: currentUser.uid,
           status: "lobby",
           seed,
+          matchId: 0,
           startAt: null,
           createdAt: window.firebase.firestore.FieldValue.serverTimestamp(),
           updatedAt: window.firebase.firestore.FieldValue.serverTimestamp(),
@@ -939,6 +1032,7 @@
     currentRoom = null;
     currentRoomPlayers = [];
     pvpStartAtMs = 0;
+    lastMatchId = null;
     if (!keepHint) setLobbyHint("");
   }
 
@@ -977,6 +1071,14 @@
     lobbyMetaEl.textContent = currentRoom
       ? `${DIFFICULTIES[currentRoom.difficulty]?.label || currentRoom.difficulty} · статус: ${currentRoom.status}`
       : "Ожидание...";
+
+    if (currentRoom && DIFFICULTIES[currentRoom.difficulty]) {
+      lobbyDifficultyEl.value = currentRoom.difficulty;
+    }
+
+    const isHost = !!currentUser && !!currentRoom && currentRoom.hostUid === currentUser.uid;
+    lobbyDifficultyEl.disabled = !isHost || currentRoom?.status !== "lobby";
+    saveLobbyDifficultyBtn.classList.toggle("is-hidden", !isHost || currentRoom?.status !== "lobby");
 
     lobbyListEl.innerHTML = "";
     for (const p of currentRoomPlayers) {
@@ -1044,6 +1146,13 @@
         currentRoom = snap.data() || null;
         renderLobby();
 
+        // When matchId changes, each client resets their own player state for the new match.
+        const matchId = typeof currentRoom?.matchId === "number" ? currentRoom.matchId : null;
+        if (matchId !== null && matchId !== lastMatchId) {
+          lastMatchId = matchId;
+          if (currentUser) resetMyPlayerForMatch();
+        }
+
         if (currentRoom?.status === "starting" && currentRoom.startAt) {
           const ms = currentRoom.startAt.toMillis ? currentRoom.startAt.toMillis() : Date.now();
           pvpStartAtMs = ms;
@@ -1099,6 +1208,47 @@
     );
   }
 
+  async function resetMyPlayerForMatch() {
+    if (!firebaseReady || !db || !currentUser || !currentRoomCode) return;
+    try {
+      await db
+        .collection("rooms")
+        .doc(currentRoomCode)
+        .collection("players")
+        .doc(currentUser.uid)
+        .set(
+          {
+            moves: 0,
+            timeMs: null,
+            finishedAt: null,
+            updatedAt: window.firebase.firestore.FieldValue.serverTimestamp(),
+          },
+          { merge: true }
+        );
+    } catch (_) {
+      // ignore
+    }
+  }
+
+  async function applyLobbyDifficulty() {
+    if (!firebaseReady || !db || !currentUser || !currentRoomCode || !currentRoom) return;
+    if (currentRoom.hostUid !== currentUser.uid) return;
+    if (currentRoom.status !== "lobby") return;
+
+    const diff = String(lobbyDifficultyEl.value || "medium");
+    const nextDiff = DIFFICULTIES[diff] ? diff : "medium";
+    setLobbyHint("Применяю сложность...");
+    try {
+      await db.collection("rooms").doc(currentRoomCode).update({
+        difficulty: nextDiff,
+        updatedAt: window.firebase.firestore.FieldValue.serverTimestamp(),
+      });
+      setLobbyHint("");
+    } catch (e) {
+      setLobbyHint(explainFirestoreError(e));
+    }
+  }
+
   async function startPvp() {
     if (!firebaseReady || !db) return setLobbyHint("Firebase не готов.");
     if (!currentUser || !currentRoomCode || !currentRoom) return;
@@ -1108,8 +1258,15 @@
 
     setLobbyHint("Запускаю...");
     try {
+      const diff = String(lobbyDifficultyEl.value || currentRoom.difficulty || "medium");
+      const nextDiff = DIFFICULTIES[diff] ? diff : "medium";
+      const newSeed = Math.floor(Math.random() * 2 ** 31);
+      const newMatchId = (typeof currentRoom.matchId === "number" ? currentRoom.matchId : 0) + 1;
       await db.collection("rooms").doc(currentRoomCode).update({
         status: "starting",
+        difficulty: nextDiff,
+        seed: newSeed,
+        matchId: newMatchId,
         startAt: window.firebase.firestore.FieldValue.serverTimestamp(),
         updatedAt: window.firebase.firestore.FieldValue.serverTimestamp(),
       });
@@ -1132,14 +1289,15 @@
 
     showGameUI();
     showPvpLeaderboardUI(currentRoomCode);
-    // No preview in pvp: start immediately after countdown.
+    // Short synchronized preview for PVP.
     stopTimer();
     clearPreviewTimeout();
     opened = [];
     matched = new Set();
     moves = 0;
-    locked = false;
-    phase = "play";
+    hardMistakes = 0;
+    locked = true;
+    phase = "preview";
     lastWin = null;
     setSubmitHintVisible(false);
     setTime(0);
@@ -1148,8 +1306,26 @@
     const seed = Number(currentRoom.seed || 0);
     cards = buildDeck(totalPairs, seed);
     renderBoard();
-    startTimer();
-    setPvpMeta("Игра идет");
+    revealAll();
+
+    window.setTimeout(() => {
+      hideUnmatched();
+      phase = "play";
+      locked = false;
+      startTimer();
+      setPvpMeta("Игра идет");
+
+      // Host marks room as playing (optional, used to re-enable start button later).
+      if (currentUser && currentRoom && currentRoom.hostUid === currentUser.uid) {
+        db.collection("rooms")
+          .doc(currentRoomCode)
+          .update({
+            status: "playing",
+            updatedAt: window.firebase.firestore.FieldValue.serverTimestamp(),
+          })
+          .catch(() => {});
+      }
+    }, PVP_PREVIEW_MS);
   }
 
   function wireEvents() {
@@ -1169,17 +1345,32 @@
       showStack(multiMenuEl);
     });
     goSettingsBtn.addEventListener("click", () => showStack(settingsMenuEl));
+    goLeaderboardBtn.addEventListener("click", () => {
+      showStack(leaderMenuEl);
+      // Default preview: medium.
+      loadLeaderboardFor("medium", { target: "home" });
+    });
 
     backFromSingleBtn.addEventListener("click", () => showStack(homeMainEl));
     backFromMultiBtn.addEventListener("click", () => showStack(homeMainEl));
     backFromCreateBtn.addEventListener("click", () => showStack(multiMenuEl));
     backFromJoinBtn.addEventListener("click", () => showStack(multiMenuEl));
     backFromSettingsBtn.addEventListener("click", () => showStack(homeMainEl));
+    backFromLeaderBtn.addEventListener("click", () => showStack(homeMainEl));
+    backFromLeaderViewBtn.addEventListener("click", () => showStack(leaderMenuEl));
 
     singleMenuEl.addEventListener("click", (e) => {
       const btn = e.target.closest("button[data-difficulty]");
       if (!btn) return;
       startSingle(btn.dataset.difficulty);
+    });
+
+    leaderMenuEl.addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-lb]");
+      if (!btn) return;
+      const diff = btn.dataset.lb;
+      showStack(leaderViewEl);
+      loadLeaderboardFor(diff, { target: "home" });
     });
 
     goCreateRoomBtn.addEventListener("click", () => showStack(createMenuEl));
@@ -1203,6 +1394,17 @@
     overlayBtnEl.addEventListener("click", () => {
       if (!pvpPanelEl.classList.contains("is-hidden") && currentRoomCode) {
         hideOverlay();
+        // Host re-opens lobby after match.
+        if (firebaseReady && db && currentUser && currentRoom && currentRoom.hostUid === currentUser.uid) {
+          db.collection("rooms")
+            .doc(currentRoomCode)
+            .update({
+              status: "lobby",
+              startAt: null,
+              updatedAt: window.firebase.firestore.FieldValue.serverTimestamp(),
+            })
+            .catch(() => {});
+        }
         showLobbyOnly();
         return;
       }
@@ -1249,17 +1451,18 @@
       }
     });
 
-    lbRefreshBtn.addEventListener("click", () => loadLeaderboard());
+    lbRefreshBtn.addEventListener("click", () => loadLeaderboardFor(difficultyKey, { target: "side" }));
 
     leaveLobbyBtn.addEventListener("click", () => leaveLobby());
     startPvpBtn.addEventListener("click", () => startPvp());
+    saveLobbyDifficultyBtn.addEventListener("click", () => applyLobbyDifficulty());
   }
 
   function init() {
     wireEvents();
     initFirebase();
     showAuthBars();
-    loadLeaderboard();
+    loadLeaderboardFor(difficultyKey, { target: "side" });
     showHome();
   }
 

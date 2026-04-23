@@ -54,6 +54,7 @@
             <div class="menu__stack" id="homeMain">
               <button class="menu-btn" id="goSingle" type="button">Одиночная игра</button>
               <button class="menu-btn" id="goMulti" type="button">Мультиплеер</button>
+              <button class="menu-btn" id="goLeaderboard" type="button">Лидерборд</button>
               <button class="menu-btn" id="goSettings" type="button">Настройки</button>
             </div>
 
@@ -62,6 +63,7 @@
               <button class="menu-btn" data-difficulty="easy" type="button">Легкий — бала</button>
               <button class="menu-btn" data-difficulty="medium" type="button">Средний — жигит</button>
               <button class="menu-btn" data-difficulty="hard" type="button">Сложный — баатыр</button>
+              <button class="menu-btn" data-difficulty="superhard" type="button">Суперсложно — Эмирхан</button>
               <button class="menu-btn menu-btn--ghost" id="backFromSingle" type="button">Назад</button>
             </div>
 
@@ -80,6 +82,7 @@
                   <option value="easy">Легкий — бала</option>
                   <option value="medium" selected>Средний — жигит</option>
                   <option value="hard">Сложный — баатыр</option>
+                  <option value="superhard">Суперсложно — Эмирхан</option>
                 </select>
               </div>
               <div class="menu__row">
@@ -105,6 +108,20 @@
               <div class="menu__code">
                 Код комнаты: <span class="menu__codeval" id="lobbyCode">-----</span>
               </div>
+              <div class="menu__row">
+                <label class="menu__label">Сложность</label>
+                <div class="menu__row">
+                  <select class="select" id="lobbyDifficulty">
+                    <option value="easy">Легкий — бала</option>
+                    <option value="medium">Средний — жигит</option>
+                    <option value="hard">Сложный — баатыр</option>
+                    <option value="superhard">Суперсложно — Эмирхан</option>
+                  </select>
+                  <button class="btn btn--tiny is-hidden" id="saveLobbyDifficulty" type="button">
+                    Применить
+                  </button>
+                </div>
+              </div>
               <div class="menu__text" id="lobbyMeta">Ожидание игроков...</div>
               <div class="menu__text">
                 Игроки: <span id="lobbyCount">0</span>/<span id="lobbyMax">0</span>
@@ -121,6 +138,23 @@
               <div class="menu__subtitle">Настройки</div>
               <div class="menu__text">Скоро: звук, анимации, подсказки.</div>
               <button class="menu-btn menu-btn--ghost" id="backFromSettings" type="button">Назад</button>
+            </div>
+
+            <div class="menu__stack is-hidden" id="leaderMenu" aria-label="Лидерборд: выбор уровня">
+              <div class="menu__subtitle">Лидерборд</div>
+              <div class="menu__text">Выбери сложность</div>
+              <button class="menu-btn" data-lb="easy" type="button">Легкий — бала</button>
+              <button class="menu-btn" data-lb="medium" type="button">Средний — жигит</button>
+              <button class="menu-btn" data-lb="hard" type="button">Сложный — баатыр</button>
+              <button class="menu-btn" data-lb="superhard" type="button">Суперсложно — Эмирхан</button>
+              <button class="menu-btn menu-btn--ghost" id="backFromLeader" type="button">Назад</button>
+            </div>
+
+            <div class="menu__stack is-hidden" id="leaderView" aria-label="Лидерборд: результаты">
+              <div class="menu__subtitle" id="leaderTitle">Лидерборд</div>
+              <div class="menu__text" id="leaderMeta">Загрузка...</div>
+              <ol class="leaderboard__list" id="leaderList"></ol>
+              <button class="menu-btn menu-btn--ghost" id="backFromLeaderView" type="button">Назад</button>
             </div>
 
             <div class="menu__hint" id="homeHint"></div>

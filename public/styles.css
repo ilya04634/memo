@@ -554,6 +554,35 @@ body {
   transition-duration: 220ms;
 }
 
+.board.is-shuffling {
+  will-change: transform;
+  animation: boardShuffle 520ms ease-in-out;
+  /* Backdrop-filter is expensive during motion on some desktops. */
+  backdrop-filter: none;
+}
+
+.card.is-shuffling .card-inner {
+  will-change: transform;
+  animation: cardShuffle 520ms ease-in-out;
+}
+
+@keyframes boardShuffle {
+  0% { transform: translateX(0); }
+  18% { transform: translateX(-6px) rotate(-0.2deg); }
+  38% { transform: translateX(6px) rotate(0.2deg); }
+  58% { transform: translateX(-4px); }
+  78% { transform: translateX(4px); }
+  100% { transform: translateX(0); }
+}
+
+@keyframes cardShuffle {
+  0% { transform: translate3d(0, 0, 0) rotate(0deg); }
+  20% { transform: translate3d(0, -6px, 0) rotate(-2deg); }
+  45% { transform: translate3d(0, 4px, 0) rotate(2deg); }
+  70% { transform: translate3d(0, -3px, 0) rotate(-1deg); }
+  100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+}
+
 .card-face {
   position: absolute;
   inset: 0;
