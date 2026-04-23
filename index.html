@@ -136,7 +136,25 @@
 
             <div class="menu__stack is-hidden" id="settingsMenu" aria-label="Настройки">
               <div class="menu__subtitle">Настройки</div>
-              <div class="menu__text">Скоро: звук, анимации, подсказки.</div>
+              <div class="menu__text">Фон</div>
+              <div class="bg-grid" id="bgGrid" aria-label="Выбор фона">
+                <button class="bg-choice" data-bg="default" type="button">
+                  <span class="bg-choice__thumb" data-bgthumb="default"></span>
+                  <span class="bg-choice__label">Стандартный</span>
+                </button>
+                <button class="bg-choice" data-bg="bg1" type="button">
+                  <span class="bg-choice__thumb" data-bgthumb="bg1"></span>
+                  <span class="bg-choice__label">Фон 1</span>
+                </button>
+                <button class="bg-choice" data-bg="bg2" type="button">
+                  <span class="bg-choice__thumb" data-bgthumb="bg2"></span>
+                  <span class="bg-choice__label">Фон 2</span>
+                </button>
+              </div>
+              <div class="menu__hint" id="bgHint">
+                Сейчас доступен только стандартный фон. Когда добавишь `sprites/background1.png` и `sprites/background2.png`,
+                они начнут работать автоматически.
+              </div>
               <button class="menu-btn menu-btn--ghost" id="backFromSettings" type="button">Назад</button>
             </div>
 
@@ -200,6 +218,7 @@
           <div class="overlay__hint is-hidden" id="submitHint"></div>
           <div class="overlay__row overlay__row--actions">
             <button class="btn btn--primary" id="overlayBtn" type="button">Сыграть еще</button>
+            <button class="btn is-hidden" id="overlayPvpLb" type="button">Лидерборд</button>
             <button class="btn" id="overlayHomeBtn" type="button">В меню</button>
           </div>
         </div>
@@ -222,6 +241,17 @@
             <button class="btn" id="mClose" type="button">Отмена</button>
           </div>
           <div class="modal__hint" id="mHint"></div>
+        </div>
+      </section>
+
+      <section class="modal is-hidden" id="pvpModal" aria-label="Лидерборд матча" aria-live="polite">
+        <div class="modal__card">
+          <div class="modal__title" id="pvpModalTitle">PVP лидерборд</div>
+          <div class="modal__hint" id="pvpModalMeta">Загрузка...</div>
+          <ol class="leaderboard__list" id="pvpModalList"></ol>
+          <div class="modal__actions">
+            <button class="btn btn--primary" id="pvpModalClose" type="button">Закрыть</button>
+          </div>
         </div>
       </section>
     </main>

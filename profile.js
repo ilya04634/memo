@@ -1,4 +1,11 @@
 (() => {
+  const BACKGROUNDS = {
+    default: { path: "sprites/background.png" },
+    bg1: { path: "sprites/background1.png" },
+    bg2: { path: "sprites/background2.png" },
+  };
+  const BG_STORAGE_KEY = "mc_bg_v1";
+
   const emailEl = document.getElementById("pEmail");
   const nickEl = document.getElementById("pNick");
   const hintEl = document.getElementById("pHint");
@@ -12,6 +19,16 @@
   let db = null;
   let user = null;
   let saving = false;
+
+  function applySavedBackground() {
+    try {
+      const k = String(localStorage.getItem(BG_STORAGE_KEY) || "").trim();
+      const safe = BACKGROUNDS[k] ? k : "default";
+      document.documentElement.style.setProperty("--bg-image", `url("${BACKGROUNDS[safe].path}")`);
+    } catch (_) {
+      // ignore
+    }
+  }
 
   function setHint(text) {
     hintEl.textContent = text || "";
@@ -118,6 +135,7 @@
 
   function init() {
     wire();
+    applySavedBackground();
     if (!initFirebase()) return;
 
     auth.onAuthStateChanged((u) => {

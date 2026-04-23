@@ -49,6 +49,8 @@
   const leaderMetaEl = document.getElementById("leaderMeta");
   const leaderListEl = document.getElementById("leaderList");
 
+  const bgGridEl = document.getElementById("bgGrid");
+
   const roomDifficultyEl = document.getElementById("roomDifficulty");
   const roomMaxPlayersEl = document.getElementById("roomMaxPlayers");
   const createRoomBtn = document.getElementById("createRoomBtn");
@@ -84,6 +86,7 @@
   const overlayTextEl = document.getElementById("overlayText");
   const overlayPillEl = document.getElementById("overlayPill");
   const overlayBtnEl = document.getElementById("overlayBtn");
+  const overlayPvpLbBtn = document.getElementById("overlayPvpLb");
   const overlayHomeBtnEl = document.getElementById("overlayHomeBtn");
   const submitHintEl = document.getElementById("submitHint");
 
@@ -102,6 +105,12 @@
   const mGoogleBtn = document.getElementById("mGoogle");
   const mCloseBtn = document.getElementById("mClose");
   const mHintEl = document.getElementById("mHint");
+
+  const pvpModalEl = document.getElementById("pvpModal");
+  const pvpModalTitleEl = document.getElementById("pvpModalTitle");
+  const pvpModalMetaEl = document.getElementById("pvpModalMeta");
+  const pvpModalListEl = document.getElementById("pvpModalList");
+  const pvpModalCloseBtn = document.getElementById("pvpModalClose");
 
   let authMode = "login"; // login | register
 
@@ -140,6 +149,13 @@
   const SUPERHARD_SHUFFLE_ERRORS = 4;
   let lastMatchId = null;
 
+  const BACKGROUNDS = {
+    default: { label: "Стандартный", path: "sprites/background.png" },
+    bg1: { label: "Фон 1", path: "sprites/background1.png" },
+    bg2: { label: "Фон 2", path: "sprites/background2.png" },
+  };
+  const BG_STORAGE_KEY = "mc_bg_v1";
+
   function $(id) {
     return document.getElementById(id);
   }
@@ -151,6 +167,53 @@
       .replaceAll(">", "&gt;")
       .replaceAll('"', "&quot;")
       .replaceAll("'", "&#039;");
+  }
+
+  function getSavedBackgroundKey() {
+    try {
+      return String(localStorage.getItem(BG_STORAGE_KEY) || "").trim();
+    } catch (_) {
+      return "";
+    }
+  }
+
+  function saveBackgroundKey(key) {
+    try {
+      localStorage.setItem(BG_STORAGE_KEY, key);
+    } catch (_) {
+      // ignore
+    }
+  }
+
+  function applyBackground(key) {
+    const safeKey = BACKGROUNDS[key] ? key : "default";
+    const path = BACKGROUNDS[safeKey].path;
+    document.documentElement.style.setProperty("--bg-image", `url("${path}")`);
+    saveBackgroundKey(safeKey);
+
+    if (bgGridEl) {
+      bgGridEl.querySelectorAll(".bg-choice").forEach((btn) => {
+        btn.classList.toggle("is-selected", btn.dataset.bg === safeKey);
+      });
+    }
+  }
+
+  function initBackgroundPicker() {
+    if (!bgGridEl) return;
+
+    bgGridEl.querySelectorAll("[data-bgthumb]").forEach((el) => {
+      const k = el.getAttribute("data-bgthumb");
+      const bg = BACKGROUNDS[k];
+      if (bg) el.style.backgroundImage = `url("${bg.path}")`;
+    });
+
+    bgGridEl.addEventListener("click", (e) => {
+      const btn = e.target.closest(".bg-choice");
+      if (!btn) return;
+      applyBackground(btn.dataset.bg);
+    });
+
+    applyBackground(getSavedBackgroundKey() || "default");
   }
 
   function sanitizeNick(raw) {
@@ -183,11 +246,23 @@
     overlayPillEl.textContent = pill;
     setSubmitHintVisible(!!submitHint);
     if (submitHint) submitHintEl.textContent = submitHint;
+    overlayPvpLbBtn.classList.add("is-hidden");
     overlayEl.classList.remove("is-hidden");
   }
 
   function hideOverlay() {
     overlayEl.classList.add("is-hidden");
+  }
+
+  function showPvpModal() {
+    if (!currentRoomCode) return;
+    pvpModalTitleEl.textContent = `PVP лидерборд · код ${currentRoomCode}`;
+    pvpModalEl.classList.remove("is-hidden");
+    renderPvpModal();
+  }
+
+  function hidePvpModal() {
+    pvpModalEl.classList.add("is-hidden");
   }
 
   function showAuthBars() {
@@ -837,6 +912,7 @@
       pill: DIFFICULTIES[difficultyKey].label,
       submitHint: hint,
     });
+    overlayPvpLbBtn.classList.toggle("is-hidden", !isPvp || !currentRoomCode);
 
     if (canSaveGlobal) autoSubmitWinScore();
     if (isPvp) submitPvpResult();
@@ -1112,6 +1188,36 @@
     }
   }
 
+  function renderPvpModal() {
+    if (!currentRoomCode) {
+      pvpModalMetaEl.textContent = "Комната не выбрана";
+      pvpModalListEl.innerHTML = "";
+      return;
+    }
+    const list = [...currentRoomPlayers];
+    const sorted = list.sort((a, b) => {
+      const at = typeof a.timeMs === "number" ? a.timeMs : Number.POSITIVE_INFINITY;
+      const bt = typeof b.timeMs === "number" ? b.timeMs : Number.POSITIVE_INFINITY;
+      if (at !== bt) return at - bt;
+      const am = typeof a.moves === "number" ? a.moves : Number.POSITIVE_INFINITY;
+      const bm = typeof b.moves === "number" ? b.moves : Number.POSITIVE_INFINITY;
+      return am - bm;
+    });
+
+    pvpModalMetaEl.textContent = `Игроков: ${sorted.length}. Те, у кого --:--, еще играют.`;
+    pvpModalListEl.innerHTML = "";
+    for (let i = 0; i < sorted.length; i++) {
+      const p = sorted[i];
+      const li = document.createElement("li");
+      li.className = "leaderboard__item";
+      const nick = escapeHtml(p.nick || "Player");
+      const movesText = typeof p.moves === "number" ? `${p.moves} ход` : "-";
+      const timeText = typeof p.timeMs === "number" ? formatTime(p.timeMs) : "--:--";
+      li.innerHTML = `<span class="leaderboard__name">${i + 1}. ${nick}</span><span class="leaderboard__score">${movesText} · ${timeText}</span>`;
+      pvpModalListEl.appendChild(li);
+    }
+  }
+
   function startCountdown(startAtMs) {
     if (startCountdownId) window.clearInterval(startCountdownId);
     startCountdownId = window.setInterval(() => {
@@ -1200,6 +1306,10 @@
             return am - bm;
           });
           renderPvpList(sorted);
+        }
+
+        if (!pvpModalEl.classList.contains("is-hidden")) {
+          renderPvpModal();
         }
       },
       (err) => {
@@ -1421,6 +1531,12 @@
       showHome();
     });
 
+    overlayPvpLbBtn.addEventListener("click", () => showPvpModal());
+    pvpModalCloseBtn.addEventListener("click", () => hidePvpModal());
+    pvpModalEl.addEventListener("click", (e) => {
+      if (e.target === pvpModalEl) hidePvpModal();
+    });
+
     openLoginBtn.addEventListener("click", () => openAuthModal("login"));
     openRegisterBtn.addEventListener("click", () => openAuthModal("register"));
     mCloseBtn.addEventListener("click", () => closeAuthModal());
@@ -1447,6 +1563,7 @@
     window.addEventListener("keydown", (e) => {
       if (e.key === "Escape") {
         if (!authModalEl.classList.contains("is-hidden")) closeAuthModal();
+        else if (!pvpModalEl.classList.contains("is-hidden")) hidePvpModal();
         else if (!overlayEl.classList.contains("is-hidden")) hideOverlay();
       }
     });
@@ -1461,6 +1578,7 @@
   function init() {
     wireEvents();
     initFirebase();
+    initBackgroundPicker();
     showAuthBars();
     loadLeaderboardFor(difficultyKey, { target: "side" });
     showHome();
