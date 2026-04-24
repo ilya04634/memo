@@ -55,6 +55,7 @@
               <button class="menu-btn" id="goSingle" type="button">Одиночная игра</button>
               <button class="menu-btn" id="goMulti" type="button">Мультиплеер</button>
               <button class="menu-btn" id="goLeaderboard" type="button">Лидерборд</button>
+              <button class="menu-btn" id="goCollection" type="button">Коллекция</button>
               <button class="menu-btn" id="goSettings" type="button">Настройки</button>
             </div>
 
@@ -173,6 +174,13 @@
               <div class="menu__text" id="leaderMeta">Загрузка...</div>
               <ol class="leaderboard__list" id="leaderList"></ol>
               <button class="menu-btn menu-btn--ghost" id="backFromLeaderView" type="button">Назад</button>
+            </div>
+
+            <div class="menu__stack is-hidden" id="collectionMenu" aria-label="Коллекция карточек">
+              <div class="menu__subtitle">Коллекция</div>
+              <div class="menu__text">Все изображения карточек</div>
+              <div class="collection-grid" id="collectionGrid" aria-label="Список карточек"></div>
+              <button class="menu-btn menu-btn--ghost" id="backFromCollection" type="button">Назад</button>
             </div>
 
             <div class="menu__hint" id="homeHint"></div>

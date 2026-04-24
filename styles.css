@@ -29,7 +29,7 @@ body {
   background-position: center;
   background-size: cover;
   background-repeat: no-repeat;
-  background-attachment: fixed;
+  background-attachment: scroll;
 }
 
 .app {
@@ -188,6 +188,12 @@ body {
 @media (max-width: 520px) {
   .board {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 981px) {
+  body {
+    background-attachment: fixed;
   }
 }
 
@@ -366,9 +372,46 @@ body {
   color: rgba(31, 35, 40, 0.88);
 }
 
+.collection-grid {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.collection-item {
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  padding: 10px;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.12);
+  display: grid;
+  gap: 8px;
+}
+
+.collection-item__img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  object-fit: contain;
+  display: block;
+}
+
+.collection-item__label {
+  font-size: 12px;
+  color: rgba(31, 35, 40, 0.72);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono",
+    monospace;
+}
+
 @media (max-width: 520px) {
   .bg-grid {
     grid-template-columns: 1fr;
+  }
+  .collection-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 

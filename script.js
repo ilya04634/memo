@@ -1,9 +1,9 @@
 (() => {
   const DIFFICULTIES = {
-    easy: { label: "Легкий — бала", pairs: 4, previewSec: 4, cols: 4 },
-    medium: { label: "Средний — жигит", pairs: 6, previewSec: 3, cols: 4 },
-    hard: { label: "Сложный — баатыр", pairs: 8, previewSec: 2, cols: 5 },
-    superhard: { label: "Суперсложно — Эмирхан", pairs: 10, previewSec: 2, cols: 5 },
+    easy: { label: "Легкий — бала", pairs: 4, previewSec: 1.0, cols: 4 },
+    medium: { label: "Средний — жигит", pairs: 6, previewSec: 0.9, cols: 4 },
+    hard: { label: "Сложный — баатыр", pairs: 8, previewSec: 0.8, cols: 5 },
+    superhard: { label: "Суперсложно — Эмирхан", pairs: 10, previewSec: 0.7, cols: 5 },
   };
 
   const FRONT_SPRITES_TOTAL = 10;
@@ -29,11 +29,13 @@
   const settingsMenuEl = document.getElementById("settingsMenu");
   const leaderMenuEl = document.getElementById("leaderMenu");
   const leaderViewEl = document.getElementById("leaderView");
+  const collectionMenuEl = document.getElementById("collectionMenu");
   const homeHintEl = document.getElementById("homeHint");
 
   const goSingleBtn = document.getElementById("goSingle");
   const goMultiBtn = document.getElementById("goMulti");
   const goLeaderboardBtn = document.getElementById("goLeaderboard");
+  const goCollectionBtn = document.getElementById("goCollection");
   const goSettingsBtn = document.getElementById("goSettings");
   const backFromSingleBtn = document.getElementById("backFromSingle");
   const backFromMultiBtn = document.getElementById("backFromMulti");
@@ -44,12 +46,14 @@
   const backFromSettingsBtn = document.getElementById("backFromSettings");
   const backFromLeaderBtn = document.getElementById("backFromLeader");
   const backFromLeaderViewBtn = document.getElementById("backFromLeaderView");
+  const backFromCollectionBtn = document.getElementById("backFromCollection");
 
   const leaderTitleEl = document.getElementById("leaderTitle");
   const leaderMetaEl = document.getElementById("leaderMeta");
   const leaderListEl = document.getElementById("leaderList");
 
   const bgGridEl = document.getElementById("bgGrid");
+  const collectionGridEl = document.getElementById("collectionGrid");
 
   const roomDifficultyEl = document.getElementById("roomDifficulty");
   const roomMaxPlayersEl = document.getElementById("roomMaxPlayers");
@@ -136,6 +140,8 @@
   let phase = "idle"; // idle | preview | play | win
   let lastWin = null;
   let submitting = false;
+  let pvpMovesWriteTimer = null;
+  let pvpMovesWritePending = false;
 
   // Multiplayer room state
   let currentRoomCode = null;
@@ -546,10 +552,31 @@
       settingsMenuEl,
       leaderMenuEl,
       leaderViewEl,
+      collectionMenuEl,
     ];
     for (const el of stacks) el.classList.add("is-hidden");
     targetEl.classList.remove("is-hidden");
     setHomeHint("");
+  }
+
+  function renderCollection() {
+    if (!collectionGridEl) return;
+    collectionGridEl.innerHTML = "";
+    for (let i = 1; i <= FRONT_SPRITES_TOTAL; i++) {
+      const wrap = document.createElement("div");
+      wrap.className = "collection-item";
+      const img = document.createElement("img");
+      img.className = "collection-item__img";
+      img.src = `sprites/frontSideCard${i}.png`;
+      img.alt = `Карточка ${i}`;
+      img.loading = "lazy";
+      const label = document.createElement("div");
+      label.className = "collection-item__label";
+      label.textContent = `#${i}`;
+      wrap.appendChild(img);
+      wrap.appendChild(label);
+      collectionGridEl.appendChild(wrap);
+    }
   }
 
   function showHome() {
@@ -614,6 +641,31 @@
     return arr;
   }
 
+  function preloadImages(urls) {
+    const unique = Array.from(new Set(urls.filter(Boolean)));
+    for (const url of unique) {
+      const img = new Image();
+      img.decoding = "async";
+      img.loading = "eager";
+      img.src = url;
+      if (typeof img.decode === "function") {
+        img.decode().catch(() => {});
+      }
+    }
+  }
+
+  function preloadAssets() {
+    const cardFronts = [];
+    for (let i = 1; i <= FRONT_SPRITES_TOTAL; i++) cardFronts.push(`sprites/frontSideCard${i}.png`);
+    preloadImages([
+      ...cardFronts,
+      "sprites/backSideCard.png",
+      "sprites/background.png",
+      "sprites/background1.png",
+      "sprites/background2.png",
+    ]);
+  }
+
   function seededRng(seed) {
     // Mulberry32
     let t = seed >>> 0;
@@ -660,7 +712,7 @@
     stopTimer();
     timerId = window.setInterval(() => {
       setTime(performance.now() - startMs);
-    }, 200);
+    }, 500);
   }
 
   function clearPreviewTimeout() {
@@ -957,17 +1009,7 @@
     moves += 1;
     setStats();
     // If in PVP match, update moves live.
-    if (!pvpPanelEl.classList.contains("is-hidden") && firebaseReady && db && currentUser && currentRoomCode) {
-      db.collection("rooms")
-        .doc(currentRoomCode)
-        .collection("players")
-        .doc(currentUser.uid)
-        .set(
-          { moves, updatedAt: window.firebase.firestore.FieldValue.serverTimestamp() },
-          { merge: true }
-        )
-        .catch(() => {});
-    }
+    queuePvpMovesWrite();
 
     const [k1, k2] = opened;
     const c1 = cards.find((c) => c.key === k1);
@@ -994,6 +1036,28 @@
 
       if (matched.size === totalPairs) finishWin();
     }, isMatch ? 320 : 650);
+  }
+
+  function queuePvpMovesWrite() {
+    if (pvpPanelEl.classList.contains("is-hidden")) return;
+    if (!firebaseReady || !db || !currentUser || !currentRoomCode) return;
+    if (phase !== "play" && phase !== "win") return;
+
+    pvpMovesWritePending = true;
+    if (pvpMovesWriteTimer) return;
+
+    pvpMovesWriteTimer = window.setTimeout(() => {
+      pvpMovesWriteTimer = null;
+      if (!pvpMovesWritePending) return;
+      pvpMovesWritePending = false;
+
+      db.collection("rooms")
+        .doc(currentRoomCode)
+        .collection("players")
+        .doc(currentUser.uid)
+        .set({ moves }, { merge: true })
+        .catch(() => {});
+    }, 250);
   }
 
   function startSingle(diffKey) {
@@ -1484,6 +1548,10 @@
       // Default preview: medium.
       loadLeaderboardFor("medium", { target: "home" });
     });
+    goCollectionBtn.addEventListener("click", () => {
+      showStack(collectionMenuEl);
+      renderCollection();
+    });
 
     backFromSingleBtn.addEventListener("click", () => showStack(homeMainEl));
     backFromMultiBtn.addEventListener("click", () => showStack(homeMainEl));
@@ -1492,6 +1560,7 @@
     backFromSettingsBtn.addEventListener("click", () => showStack(homeMainEl));
     backFromLeaderBtn.addEventListener("click", () => showStack(homeMainEl));
     backFromLeaderViewBtn.addEventListener("click", () => showStack(leaderMenuEl));
+    backFromCollectionBtn.addEventListener("click", () => showStack(homeMainEl));
 
     singleMenuEl.addEventListener("click", (e) => {
       const btn = e.target.closest("button[data-difficulty]");
@@ -1601,6 +1670,7 @@
 
   function init() {
     wireEvents();
+    preloadAssets();
     initFirebase();
     initBackgroundPicker();
     showAuthBars();
