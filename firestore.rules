@@ -76,7 +76,7 @@ service cloud.firestore {
       allow list, get: if
         request.auth != null &&
         exists(/databases/$(database)/documents/rooms/$(code)) &&
-        get(/databases/$(database)/documents/rooms/$(code)).data.status in ['lobby','starting'];
+        get(/databases/$(database)/documents/rooms/$(code)).data.status in ['lobby','starting','playing'];
 
       allow create: if
         request.auth != null &&

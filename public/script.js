@@ -6,7 +6,7 @@
     superhard: { label: "Суперсложно — Эмирхан", pairs: 10, previewSec: 2, cols: 5 },
   };
 
-  const FRONT_SPRITES_TOTAL = 7;
+  const FRONT_SPRITES_TOTAL = 10;
 
   const statsBarEl = document.getElementById("statsBar");
   const timeEl = document.getElementById("time");
@@ -207,9 +207,33 @@
       if (bg) el.style.backgroundImage = `url("${bg.path}")`;
     });
 
+    // Disable choices whose images are missing (keeps UI ready for future backgrounds).
+    bgGridEl.querySelectorAll(".bg-choice").forEach((btn) => {
+      const key = btn.dataset.bg;
+      const bg = BACKGROUNDS[key];
+      if (!bg || key === "default") return;
+      const img = new Image();
+      img.onload = () => {
+        btn.disabled = false;
+        btn.style.opacity = "";
+        btn.style.pointerEvents = "";
+      };
+      img.onerror = () => {
+        btn.disabled = true;
+        btn.style.opacity = "0.5";
+        btn.style.pointerEvents = "none";
+        const labelEl = btn.querySelector(".bg-choice__label");
+        if (labelEl && !labelEl.textContent.includes("(скоро)")) {
+          labelEl.textContent = `${labelEl.textContent} (скоро)`;
+        }
+      };
+      img.src = bg.path;
+    });
+
     bgGridEl.addEventListener("click", (e) => {
       const btn = e.target.closest(".bg-choice");
       if (!btn) return;
+      if (btn.disabled) return;
       applyBackground(btn.dataset.bg);
     });
 
