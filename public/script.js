@@ -156,8 +156,8 @@
   let lastMatchId = null;
 
   const BACKGROUNDS = {
-    default: { label: "Стандартный", path: "sprites/background.png" },
-    bg1: { label: "Фон 1", path: "sprites/background1.png" },
+    default: { label: "Основной", path: "sprites/background1.png" },
+    bg1: { label: "Фон 1", path: "sprites/background.png" },
     bg2: { label: "Фон 2", path: "sprites/background2.png" },
   };
   const BG_STORAGE_KEY = "mc_bg_v1";
@@ -626,7 +626,13 @@
   }
 
   function setBoardCols(cols) {
-    boardEl.style.setProperty("--board-cols", String(cols));
+    const w = window.innerWidth || 1024;
+    let next = Number(cols);
+    // On very small screens, avoid too many columns (cards become unreadably small).
+    if (w <= 420) next = Math.min(next, 4);
+    // On small screens, keep at most 5 columns.
+    else if (w <= 520) next = Math.min(next, 5);
+    boardEl.style.setProperty("--board-cols", String(next));
   }
 
   function isHardMode() {
@@ -1676,6 +1682,13 @@
     showAuthBars();
     loadLeaderboardFor(difficultyKey, { target: "side" });
     showHome();
+
+    window.addEventListener("resize", () => {
+      // Keep board responsive on rotation/resizes.
+      if (gameScreenEl.classList.contains("is-hidden")) return;
+      const cfg = DIFFICULTIES[difficultyKey] || DIFFICULTIES.medium;
+      setBoardCols(cfg.cols);
+    });
   }
 
   init();

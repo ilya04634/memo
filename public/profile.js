@@ -1,7 +1,7 @@
 (() => {
   const BACKGROUNDS = {
-    default: { path: "sprites/background.png" },
-    bg1: { path: "sprites/background1.png" },
+    default: { path: "sprites/background1.png" },
+    bg1: { path: "sprites/background.png" },
     bg2: { path: "sprites/background2.png" },
   };
   const BG_STORAGE_KEY = "mc_bg_v1";

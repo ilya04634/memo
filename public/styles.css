@@ -25,7 +25,7 @@ body {
   color: var(--ink);
   font-family: "Palatino Linotype", Palatino, Georgia, serif;
   background-color: #111;
-  background-image: var(--bg-image, url("sprites/background.png"));
+  background-image: var(--bg-image, url("sprites/background1.png"));
   background-position: center;
   background-size: cover;
   background-repeat: no-repeat;
@@ -180,14 +180,11 @@ body {
   .layout {
     grid-template-columns: 1fr;
   }
-  .board {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
 }
 
 @media (max-width: 520px) {
-  .board {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  .layout {
+    gap: 12px;
   }
 }
 
