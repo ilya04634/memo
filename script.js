@@ -1,9 +1,9 @@
 (() => {
   const DIFFICULTIES = {
-    easy: { label: "Легкий — бала", pairs: 4, previewSec: 1.0, cols: 4 },
-    medium: { label: "Средний — жигит", pairs: 6, previewSec: 0.9, cols: 4 },
-    hard: { label: "Сложный — баатыр", pairs: 8, previewSec: 0.8, cols: 5 },
-    superhard: { label: "Суперсложно — Эмирхан", pairs: 10, previewSec: 0.7, cols: 5 },
+    easy: { label: "Бала", pairs: 4, previewSec: 1.0, cols: 4 },
+    medium: { label: "Жигит", pairs: 6, previewSec: 0.9, cols: 4 },
+    hard: { label: "Баатыр", pairs: 8, previewSec: 0.8, cols: 5 },
+    superhard: { label: "Эмирхан", pairs: 10, previewSec: 0.7, cols: 5 },
   };
 
   const FRONT_SPRITES_TOTAL = 10;
